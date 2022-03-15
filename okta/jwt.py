@@ -57,8 +57,7 @@ class JWT():
 
         # check if JWK
         # String representation of dictionary or dict
-        if ((type(private_key) == str and private_key.startswith("{")) or
-                type(private_key) == dict):
+        if JWT.key_is_jwk(private_key):
             # if string repr, convert to dict object
             if (type(private_key) == str):
                 private_key = literal_eval(private_key)
@@ -120,8 +119,20 @@ class JWT():
             'exp': expiry_time,
             'iss': client_id,
             'aud': org_url + JWT.OAUTH_ENDPOINT,
-            'jti': generated_JWT_ID
+            'jti': generated_JWT_ID,
         }
 
-        token = jwt.encode(claims, my_jwk.to_dict(), JWT.HASH_ALGORITHM)
+        headers = {}
+
+        if JWT.key_is_jwk(private_key):
+            if type(private_key) == str:
+                private_key = literal_eval(private_key)
+            if private_key.get('kid'):
+                headers['kid'] = private_key['kid']
+
+        token = jwt.encode(claims, my_jwk.to_dict(), JWT.HASH_ALGORITHM, headers)
         return token
+
+    @staticmethod
+    def key_is_jwk(private_key):
+        return (type(private_key) == str and private_key.startswith("{")) or type(private_key) == dict
